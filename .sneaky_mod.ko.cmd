@@ -1,1 +1,1 @@
-cmd_/home/vcm/homework5-kit/sneaky_mod.ko := ld -r -m elf_x86_64  -z max-page-size=0x200000 -z noexecstack   --build-id  -T ./scripts/module-common.lds -o /home/vcm/homework5-kit/sneaky_mod.ko /home/vcm/homework5-kit/sneaky_mod.o /home/vcm/homework5-kit/sneaky_mod.mod.o;  true
+cmd_/home/xc198/sneaky_kernel/sneaky_mod.ko := ld -r -m elf_x86_64  -z max-page-size=0x200000 -z noexecstack   --build-id  -T ./scripts/module-common.lds -o /home/xc198/sneaky_kernel/sneaky_mod.ko /home/xc198/sneaky_kernel/sneaky_mod.o /home/xc198/sneaky_kernel/sneaky_mod.mod.o;  true

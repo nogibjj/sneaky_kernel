@@ -1,1 +1,1 @@
-cmd_/home/vcm/homework5-kit/sneaky_mod.mod := { echo  /home/vcm/homework5-kit/sneaky_mod.o;  echo; } > /home/vcm/homework5-kit/sneaky_mod.mod
+cmd_/home/xc198/sneaky_kernel/sneaky_mod.mod := { echo  /home/xc198/sneaky_kernel/sneaky_mod.o;  echo; } > /home/xc198/sneaky_kernel/sneaky_mod.mod

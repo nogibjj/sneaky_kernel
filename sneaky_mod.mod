@@ -1,2 +1,2 @@
-/home/vcm/homework5-kit/sneaky_mod.o
+/home/xc198/sneaky_kernel/sneaky_mod.o
 
