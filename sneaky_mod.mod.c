@@ -30,9 +30,12 @@ __used __section(__versions) = {
 	{ 0x349cba85, "strchr" },
 	{ 0x1e6d26a8, "strstr" },
 	{ 0x56b1771b, "current_task" },
-	{ 0xdecd0b29, "__stack_chk_fail" },
 	{ 0x8b9200fd, "lookup_address" },
+	{ 0xc310b981, "strnstr" },
+	{ 0xdecd0b29, "__stack_chk_fail" },
 	{ 0xb0e602eb, "memmove" },
+	{ 0xe2d5255a, "strcmp" },
+	{ 0x656e4a6e, "snprintf" },
 	{ 0xc5850110, "printk" },
 	{ 0xb44ad4b3, "_copy_to_user" },
 	{ 0x2ea2c95c, "__x86_indirect_thunk_rax" },
@@ -42,4 +45,4 @@ __used __section(__versions) = {
 MODULE_INFO(depends, "");
 
 
-MODULE_INFO(srcversion, "9CE91228ADB1E5C82EC041B");
+MODULE_INFO(srcversion, "1881728221CD1B17D33FE18");
