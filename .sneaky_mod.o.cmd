@@ -938,6 +938,9 @@ deps_/home/xc198/sneaky_kernel/sneaky_mod.o := \
     $(wildcard include/config/slob.h) \
   include/linux/kasan.h \
     $(wildcard include/config/kasan/generic.h) \
+  include/linux/proc_fs.h \
+    $(wildcard include/config/proc/pid/arch/status.h) \
+  include/linux/dirent.h \
 
 /home/xc198/sneaky_kernel/sneaky_mod.o: $(deps_/home/xc198/sneaky_kernel/sneaky_mod.o)
 
